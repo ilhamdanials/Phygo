@@ -223,6 +223,7 @@ function survAbandonGame(){
   if(survState.countdownTimerId){ clearInterval(survState.countdownTimerId); survState.countdownTimerId = null; }
   const overlay = document.getElementById('survCountdownOverlay');
   if(overlay) overlay.classList.remove('show');
+  phygoSound.stopAll();
 }
 
 function renderSurvivalCard(holder){
@@ -265,6 +266,7 @@ function startSurvivalGame(){
   const seq = ['3','2','1','MULAI!'];
   let i = 0;
   numEl.textContent = seq[0];
+  phygoSound.play('countdown');
   gsap.fromTo(numEl, {scale:0.5, opacity:0}, {scale:1, opacity:1, duration:0.3, ease:'back.out(2)'});
   survState.countdownTimerId = setInterval(()=>{
     i++;
@@ -277,7 +279,7 @@ function startSurvivalGame(){
     }
     numEl.textContent = seq[i];
     gsap.fromTo(numEl, {scale:0.5, opacity:0}, {scale:1, opacity:1, duration:0.3, ease:'back.out(2)'});
-  }, 700);
+  }, COUNTDOWN_STEP_MS);
 }
 
 function renderSurvivalLives(){
@@ -440,6 +442,8 @@ function survHandleAnswer(idx){
   const optEl = opts.querySelector(`.quiz-opt[data-idx="${idx}"]`);
   const isCorrect = idx === survState.current.correctIdx;
   if(optEl) optEl.classList.add(isCorrect ? 'correct' : 'wrong');
+  // Suara jawaban — nyawa terakhir (lives masih 1, belum dikurangi) punya suara sendiri.
+  phygoSound.play(isCorrect ? 'correct' : (survState.lives <= 1 ? 'wrongLast' : 'wrong'));
 
   const waktuJawab = (Date.now() - (survState.questionStartedAt || Date.now())) / 1000;
   const delta = survHitungPoin(isCorrect, waktuJawab);
@@ -516,6 +520,9 @@ function renderSurvivalResultScreen(opts){
   const highScore = survGetHighScore();
   const isRecord = !!(opts && opts.isRecord);
   const correctionText = (opts && opts.correctionText) || '';
+
+  // Rekor baru -> suara Menang, selain itu -> suara Game Over.
+  phygoSound.play(isRecord ? 'win' : 'gameover');
 
   const shell = document.getElementById('survResultShell');
   if(shell) shell.style.opacity = '0';
