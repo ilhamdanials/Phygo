@@ -1148,12 +1148,14 @@ function renderQuizStep(body, cfg){
      if (isCorrect) {
        selectedEl.classList.remove('selected');
        selectedEl.classList.add('correct');
+       phygoSound.play('correct');
        showQuizFeedback('success', 'Tepat Sekali!', cfg.explainCorrect, `<button class="btn btn-block ripple-host" style="background:#fff; color:var(--success-container); font-size:16px; font-weight:900;" onclick="window.qfBtnAction('next', ${cfg.level})">Klaim Pencapaian</button>`, { level: cfg.level });
      } else {
        selectedEl.classList.remove('selected');
        selectedEl.classList.add('wrong');
        lives--;
        updateLives();
+       phygoSound.play(lives > 0 ? 'wrong' : 'wrongLast');
 
        if (lives > 0) {
            showQuizFeedback('error', 'Masih Kurang Tepat', cfg.explainWrong + `<br><br><div style="display:inline-flex;align-items:center;gap:8px;">Sisa Nyawa: <b>${lives}</b> <span style="display:inline-flex;color:var(--error);width:20px;height:20px;">${svgIcon('heart')}</span></div>`, `<button class="btn btn-block ripple-host" style="background:#fff; color:var(--error-container); font-size:16px; font-weight:900;" onclick="window.qfBtnAction('retry')">Mengerti, Coba Lagi</button>`);
