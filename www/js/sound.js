@@ -40,7 +40,9 @@ const phygoSound = (function(){
 
   const Ctx = window.AudioContext || window.webkitAudioContext;
   let ctx = null;
-  try{ if(Ctx) ctx = new Ctx(); }catch(e){ ctx = null; }
+  // latencyHint 'interactive' = minta delay output serendah mungkin.
+  try{ if(Ctx) ctx = new Ctx({ latencyHint: 'interactive' }); }
+  catch(e){ try{ ctx = Ctx ? new Ctx() : null; }catch(e2){ ctx = null; } }
 
   const buffers = {};   // nama -> AudioBuffer (hasil decode)
   const playing = {};   // nama -> source yang lagi bunyi
@@ -66,9 +68,27 @@ const phygoSound = (function(){
     });
   }
 
+  // Suara hening yang diputar terus-menerus, supaya chip audio HP gak "tidur"
+  // (HP suka matiin audio hardware kalau nganggur, akibatnya suara pertama
+  // setelah diam telat bunyi beberapa ratus ms).
+  let keepAlive = null;
+  function startKeepAlive(){
+    if(!ctx || keepAlive) return;
+    try{
+      const src = ctx.createBufferSource();
+      src.buffer = ctx.createBuffer(1, 1024, ctx.sampleRate); // isinya nol = hening
+      src.loop = true;
+      src.connect(ctx.destination);
+      src.start(0);
+      keepAlive = src;
+    }catch(e){}
+  }
+
   // Browser/WebView baru ngizinin audio setelah ada sentuhan pertama dari user.
   function unlock(){
-    if(ctx && ctx.state === 'suspended') ctx.resume().catch(()=>{});
+    if(!ctx) return;
+    if(ctx.state === 'suspended') ctx.resume().catch(()=>{});
+    startKeepAlive();
   }
   ['pointerdown', 'touchstart', 'keydown'].forEach(ev =>
     document.addEventListener(ev, unlock, { passive: true })
@@ -116,13 +136,28 @@ const phygoSound = (function(){
     if(muted) stopAll();
   }
 
-  // App di-minimize -> matiin suara yang lagi jalan.
+  // App di-minimize -> matiin suara yang lagi jalan & tidurin audio engine.
   document.addEventListener('visibilitychange', () => {
-    if(document.visibilityState === 'hidden') stopAll();
+    if(document.visibilityState === 'hidden'){
+      stopAll();
+      if(ctx && ctx.state === 'running') ctx.suspend().catch(()=>{});
+    } else {
+      unlock();
+    }
   });
 
   preload();
 
+  // Cadangan: siapin <audio> biasa dari awal (bukan baru dibikin pas pertama
+  // kali dipencet), jadi kalau Web Audio gagal pun gak ada delay loading.
+  Object.keys(SOUND_FILES).forEach(name => {
+    try{
+      const a = new Audio(url(name));
+      a.preload = 'auto';
+      a.load();
+      fallback[name] = a;
+    }catch(e){}
+  });
+
   return { play, stop, stopAll, isMuted: () => muted, setMuted };
 })();
-
