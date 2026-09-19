@@ -522,6 +522,7 @@ async function renderDuelVsScreen(opts){
       const seq = ['3','2','1','MULAI!'];
       let i = 0;
       numEl.textContent = seq[0];
+      phygoSound.play('countdown');
       gsap.fromTo(numEl, {scale:0.5, opacity:0}, {scale:1, opacity:1, duration:0.3, ease:'back.out(2)'});
       const tick = setInterval(()=>{
         i++;
@@ -532,7 +533,7 @@ async function renderDuelVsScreen(opts){
         }
         numEl.textContent = seq[i];
         gsap.fromTo(numEl, {scale:0.5, opacity:0}, {scale:1, opacity:1, duration:0.3, ease:'back.out(2)'});
-      }, 700);
+      }, COUNTDOWN_STEP_MS);
     }, 900);
   } catch(e){
     console.error('[Phygo] Gagal memuat layar VS duel:', e);
@@ -703,6 +704,8 @@ function duelHandleAnswer(idx){
   const optEl = opts.querySelector(`.quiz-opt[data-idx="${idx}"]`);
   const isCorrect = idx === duelState.current.correctIdx;
   if(optEl) optEl.classList.add(isCorrect ? 'correct' : 'wrong');
+  // Suara jawaban — nyawa terakhir (lives masih 1, belum dikurangi) punya suara sendiri.
+  phygoSound.play(isCorrect ? 'correct' : (duelState.lives <= 1 ? 'wrongLast' : 'wrong'));
 
   const waktuJawab = (Date.now() - (duelState.questionStartedAt || Date.now())) / 1000;
   duelApplyPoin(isCorrect, waktuJawab);
@@ -880,6 +883,9 @@ async function renderDuelResultScreen(opts){
     // biar warna & ikon gak pernah "kelewat" salah satunya.
     const resultKind = isDraw ? 'draw' : (iWon ? 'win' : 'lose');
     const resultIcon = isDraw ? 'scale' : (iWon ? 'trophy' : 'cross');
+
+    // Menang -> suara Menang, kalah -> suara Game Over, seri -> tanpa suara.
+    if(!isDraw) phygoSound.play(iWon ? 'win' : 'gameover');
 
     if(shell){
       shell.classList.remove('win', 'lose', 'draw');
