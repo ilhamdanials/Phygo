@@ -68,6 +68,15 @@ document.querySelectorAll('#themeGrid .theme-swatch').forEach(btn=>{
   });
 });
 
+// ===== Mode Senyap (di Settings screen) — lihat js/sound.js =====
+const muteToggle = document.getElementById('muteToggle');
+if(muteToggle){
+  muteToggle.checked = phygoSound.isMuted();
+  muteToggle.addEventListener('change', (e)=>{
+    phygoSound.setMuted(e.target.checked);
+  });
+}
+
 // ===== Privacy Toggle (di Settings screen) =====
 const privacyToggle = document.getElementById('privacyToggle');
 if(privacyToggle){
